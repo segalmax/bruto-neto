@@ -87,10 +87,23 @@
   
   .chart-card { min-height: 500px; display: flex; flex-direction: column; gap: 0; }
   .chart-range-bar {
-    display: flex; align-items: center; gap: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
     font-size: 0.82rem; color: #6b7280;
     padding: 6px 4px 10px;
   }
+  .chart-hint {
+    display: flex; align-items: center; gap: 6px;
+    background: #eff6ff; color: #3b82f6;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700;
+    animation: pulse-subtle 2s infinite;
+  }
+  @keyframes pulse-subtle {
+    0% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.02); }
+    100% { opacity: 0.8; transform: scale(1); }
+  }
+  canvas#chart { cursor: crosshair; }
   .chart-range-label { font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.6px; margin-left: 4px; }
   .chart-range-bar label { display: flex; align-items: center; gap: 6px; }
   .chart-range-bar input { width: 90px; border: 1.5px solid #e0e0e0; border-radius: 6px; padding: 4px 8px; font-size: 0.82rem; direction: ltr; text-align: left; }
@@ -136,7 +149,7 @@
   .hover-group-name { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #6b7280; }
   .hover-group-total { font-size: 0.9rem; font-weight: 700; color: #1a1a2e; font-variant-numeric: tabular-nums; }
   .hover-group-total span { font-size: 0.75rem; font-weight: 400; color: #6b7280; margin-left: 5px; }
-  .hover-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.83rem; }
+  .hover-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.83rem; cursor: pointer; transition: background 0.15s; }
   .hover-row-label { color: #444; display: flex; align-items: center; gap: 6px; }
   .hover-row-value { color: #1a1a2e; font-variant-numeric: tabular-nums; direction: ltr; }
   .hover-row-value .pct { font-size: 0.75rem; color: #6b7280; margin-right: 5px; }
@@ -144,28 +157,33 @@
 
   /* Breakdown Ribbon */
   .breakdown-container {
-    padding: 24px 16px 40px;
+    padding: 16px 16px 20px;
     background: #fff;
     border-bottom: 1px solid #e5e7eb;
   }
   .breakdown-title {
     font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1px; color: #9ca3af; margin-bottom: 20px;
+    letter-spacing: 1px; color: #9ca3af; margin-bottom: 10px;
     display: flex; justify-content: space-between; align-items: baseline;
   }
   .breakdown-bar-outer {
     height: 36px; background: #f3f4f6; border-radius: 10px;
     position: relative; display: flex; overflow: visible;
-    margin-bottom: 35px;
+    margin-bottom: 24px;
     border: 1px solid #e5e7eb;
   }
+  .breakdown-segment { cursor: pointer; }
+  .breakdown-segment.active { box-shadow: inset 0 0 0 2px #1a1a2e; z-index: 2; }
+  .breakdown-segment.employer.active { box-shadow: 0 0 0 3px #10b981; z-index: 3; border-color: #10b981; }
+  .hover-row.active { background: rgba(59, 130, 246, 0.12); border-radius: 6px; margin: 0 -6px; padding: 4px 6px; }
   .breakdown-segment {
     height: 100%; position: relative; transition: width 0.3s ease;
     display: flex; align-items: center; justify-content: center;
   }
   .breakdown-segment:first-child { border-top-right-radius: 9px; border-bottom-right-radius: 9px; }
   
-  /* "Mine" bracket indicator */
+  .breakdown-bar-wrapper { position: relative; }
+  /* "Mine" bracket indicator - below the bar, spans employer + mine segments */
   .mine-bracket {
     position: absolute;
     bottom: -10px;
@@ -178,7 +196,7 @@
   }
   .mine-bracket-label {
     position: absolute;
-    top: 10px;
+    bottom: -18px;
     font-size: 0.65rem;
     font-weight: 800;
     color: #3b82f6;
@@ -186,22 +204,16 @@
     text-transform: uppercase;
   }
 
-  /* Employer part is special: it sits outside the 100% bruto bar */
+  /* Employer segments: inside the bar but visually distinct */
   .breakdown-segment.employer {
-    border-radius: 4px; margin-right: 4px;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
-    border: 1px dashed #10b981;
+    opacity: 0.7;
+    border-right: 2px dashed rgba(255,255,255,0.6);
+    border-left: 2px dashed rgba(255,255,255,0.6);
   }
-  .breakdown-label {
-    position: absolute; top: 42px; left: 50%; transform: translateX(-50%);
-    font-size: 0.7rem; font-weight: 600; color: #4b5563; white-space: nowrap;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-  }
-  .breakdown-label::before {
-    content: ''; width: 1px; height: 6px; background: #d1d5db; margin-bottom: 2px;
-  }
+  .breakdown-segment:last-child { border-top-left-radius: 9px; border-bottom-left-radius: 9px; }
+  /* 100% bruto marker — positioned dynamically between employer extras and taxes */
   .bruto-marker {
-    position: absolute; right: 100%; top: -8px; bottom: -8px;
+    position: absolute; top: -8px; bottom: -8px;
     width: 2px; background: #1a1a2e; z-index: 10;
   }
   .bruto-marker-label {
@@ -293,9 +305,15 @@
 
   <div class="card chart-card">
     <div class="chart-range-bar">
-      <span class="chart-range-label">טווח גרף</span>
-      <label>מ־<input type="number" id="rangeMin" value="5000" min="0" step="1000"> ₪</label>
-      <label>עד <input type="number" id="rangeMax" value="70000" min="10000" step="100000"> ₪</label>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span class="chart-range-label">טווח גרף</span>
+        <label>מ־<input type="number" id="rangeMin" value="5000" min="0" step="1000"> ₪</label>
+        <label>עד <input type="number" id="rangeMax" value="70000" min="10000" step="100000"> ₪</label>
+      </div>
+      <div class="chart-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        לחצו או גררו על הגרף לסימולציה
+      </div>
     </div>
     <canvas id="chart"></canvas>
     <div id="hoverDetails" class="hover-panel"></div>
@@ -422,6 +440,50 @@ function calcNeto(bruto, s) {
   };
 }
 
+// ── Light math tests (manual trigger via console: runMathTests()) ───────────────────────────────
+(function () {
+  function buildTestSettings() {
+    return {
+      creditPoints: 2.25,
+      pensionEmp: 6,
+      pensionEmpl: 6.5,
+      sevrEmpl: 8.33,
+      studyEmp: 2.5,
+      studyEmpl: 7.5,
+      disability: 1,
+      rangeMin: 0,
+      rangeMax: 100000,
+      bruto: 0,
+    };
+  }
+
+  function assertApprox(label, actual, expected, tol) {
+    if (Math.abs(actual - expected) > tol) {
+      throw new Error(`${label} expected ${expected}, got ${actual}`);
+    }
+  }
+
+  function runMathTests() {
+    const s = buildTestSettings();
+    const cases = [
+      { bruto: 20000, expected: { neto: 13340.70, incomeTax: 3094.70, bl: 963.41, health: 901.19 } },
+      { bruto: 47000, expected: { neto: 23731.95, incomeTax: 13747.30, bl: 3069.25, health: 2456.50 } },
+      { bruto: 700000, expected: { neto: 218663.09, incomeTax: 416128.00, bl: 3174.60, health: 2534.31 } },
+    ];
+    const tol = 0.2;
+    cases.forEach(test => {
+      const settings = { ...s, bruto: test.bruto };
+      const r = calcNeto(test.bruto, settings);
+      assertApprox(`neto @${test.bruto}`, r.neto, test.expected.neto, tol);
+      assertApprox(`incomeTax @${test.bruto}`, r.incomeTax, test.expected.incomeTax, tol);
+      assertApprox(`bl @${test.bruto}`, r.bl, test.expected.bl, tol);
+      assertApprox(`health @${test.bruto}`, r.health, test.expected.health, tol);
+    });
+    console.log('✅ math tests passed for 20k, 47k, 700k');
+  }
+
+  window.runMathTests = runMathTests;
+})();
 function parseInputs() {
   const v = id => parseFloat(document.getElementById(id).value) || 0;
   const minB = Math.max(0, v('rangeMin') || 5000);
@@ -442,17 +504,22 @@ function parseInputs() {
 
 // ── Chart ─────────────────────────────────────────────────────────────────────
 const COLORS = {
-  neto:      '#3b82f6',
-  pension:   '#8b5cf6',
-  study:     '#10b981',
-  health:    '#f59e0b',
-  bl:        '#f97316',
-  incomeTax: '#ec4899',
+  neto:        '#3b82f6',
+  pension:     '#8b5cf6',
+  pensionEmpl: '#6d28d9',
+  study:       '#10b981',
+  studyEmpl:   '#0d9488',
+  health:      '#f59e0b',
+  bl:          '#f97316',
+  incomeTax:   '#ec4899',
+  extraTax:    '#ec4899',
 };
 const LABELS = {
   neto:      'נטו',
   pension:   'פנסיה (עובד)',
+  pensionEmpl: 'פנסיה (מעסיק)',
   study:     'קרן השתלמות (עובד)',
+  studyEmpl: 'קרן השתלמות (מעסיק)',
   health:    'ביטוח בריאות',
   bl:        'ביטוח לאומי',
   incomeTax: 'מס הכנסה',
@@ -491,10 +558,10 @@ function renderHoverDetails(bruto, settings) {
   const pensionTotal = r.pension + r.pensionEmpl;
   const studyTotal   = r.study   + r.studyEmpl;
 
-  const hrow = (key, label, value, note = '', negative = false) =>
-    `<div class="hover-row${negative ? ' negative' : ''}">
-       <span class="hover-row-label"><span class="swatch" style="background:${COLORS[key]}"></span>${label}</span>
-       <span class="hover-row-value"><span class="pct">${pct(Math.abs(value))}</span>${negative ? '-' : ''}${formatCurrency(Math.abs(value))}${note ? `<br><span style="font-size:0.72rem;color:#6b7280">${note}</span>` : ''}</span>
+  const hrow = (segmentKey, label, value, note = '', negative = false) =>
+    `<div class="hover-row${negative ? ' negative' : ''}" data-segment-key="${segmentKey}">
+       <span class="hover-row-label"><span class="swatch" style="background:${COLORS[segmentKey] || COLORS[segmentKey.replace('Empl','')]}"></span>${label}</span>
+       <span class="hover-row-value"><span class="pct">${pct(Math.abs(value))}</span>${negative ? '-' : ''}${formatCurrency(Math.abs(value))}${note ? ` <span style="font-size:0.72rem;color:#6b7280">${note}</span>` : ''}</span>
      </div>`;
   const group = (name, total, rows) =>
     `<div class="hover-group">
@@ -505,8 +572,7 @@ function renderHoverDetails(bruto, settings) {
        ${rows}
      </div>`;
 
-  const mineFromBruto = r.neto + r.pension + r.study;
-  const employerNet   = r.pensionEmpl + r.studyEmpl - r.extraTax;
+  const mineFromBruto = r.neto + r.pension + r.study + r.pensionEmpl + r.studyEmpl;
   
   const effectiveTaxRate = ((r.incomeTax + r.bl + r.health) / bruto) * 100;
   const savingsRate = ((r.pension + r.study + r.pensionEmpl + r.studyEmpl) / bruto) * 100;
@@ -537,65 +603,62 @@ function renderHoverDetails(bruto, settings) {
     </div>
 
     <div class="breakdown-container">
-      <div class="breakdown-title">
-        <span>מפת חלוקת השכר (ברוטו = 100%)</span>
-        <span>${formatCurrency(bruto)}</span>
-      </div>
-      <div style="position:relative; margin-left: 120px;">
+      <div class="breakdown-bar-wrapper">
         <div class="breakdown-bar-outer">
-          <div class="bruto-marker"><div class="bruto-marker-label">100% ברוטו</div></div>
-          
-          <!-- "Mine" bracket indicator -->
-          <div class="mine-bracket" style="width: ${((r.neto + r.pension + r.study) / bruto) * 100}%; right: 0;">
-            <div class="mine-bracket-label">סה"כ שלי</div>
-          </div>
-
-          ${[`neto`, `pension`, `study`, `health`, `bl`, `incomeTax`].map(k => {
-            const val = r[k];
-            const w = (val / bruto) * 100;
-            if (w < 0.5) return '';
-            return `<div class="breakdown-segment" style="width:${w}%; background:${COLORS[k]}">
-              <div class="breakdown-label">
-                <span>${LABELS[k] || 'מס'}</span>
-                <strong>${pct(val)}</strong>
-              </div>
-            </div>`;
-          }).join('')}
-
-          <div style="position: absolute; right: 100%; top: 0; bottom: 0; display: flex; align-items: center;">
-            ${[`pensionEmpl`, `studyEmpl`].map(k => {
+          ${(() => {
+            const total = bruto + r.pensionEmpl + r.studyEmpl;
+            const mine  = r.neto + r.pension + r.study + r.pensionEmpl + r.studyEmpl;
+            const pct   = v => `${(v / total) * 100}%`;
+            // order (RTL = first is rightmost): interleave employer+employee pairs, then taxes
+            const segments = [`studyEmpl`,`study`,`pensionEmpl`,`pension`,`neto`,`health`,`bl`,`incomeTax`].map(k => {
               const val = r[k];
-              const w = (val / bruto) * 120;
-              return `<div class="breakdown-segment employer" style="width:${w}px; background:${COLORS[k.replace('Empl','')]}; opacity: 0.6">
-                <div class="breakdown-label">
-                  <span style="color:#059669">${LABELS[k.replace('Empl','')]} +</span>
-                  <strong style="color:#059669">${pct(val)}</strong>
-                </div>
-              </div>`;
-            }).join('')}
-          </div>
+              if (!val || val < 1) return '';
+              const color = COLORS[k] || COLORS[k.replace('Empl','')];
+              const isEmpl = k.endsWith('Empl');
+              return `<div class="breakdown-segment${isEmpl ? ' employer' : ''}" data-segment-key="${k}" style="width:${pct(val)}; background:${color}"></div>`;
+            }).join('');
+            return `
+              <div class="mine-bracket" style="right:0; width:${pct(mine)}"><div class="mine-bracket-label">סה"כ שלי</div></div>
+              ${segments}
+            `;
+          })()}
         </div>
       </div>
     </div>
 
     <div class="hover-groups">
       ${group('שלי', mineFromBruto,
-        hrow('neto',    'נטו (מזומן)',        r.neto) +
-        hrow('pension', 'פנסיה עובד',         r.pension) +
-        hrow('study',   'קרן השתלמות עובד',   r.study)
+        hrow('neto',       'נטו (מזומן)',         r.neto) +
+        hrow('pension',    'פנסיה עובד',          r.pension) +
+        hrow('pensionEmpl','פנסיה מעסיק',          r.pensionEmpl) +
+        hrow('study',      'קרן השתלמות עובד',    r.study) +
+        hrow('studyEmpl',  'קרן השתלמות מעסיק',   r.studyEmpl)
       )}
-      ${group('מסים', stateTotal,
+      ${group('מסים', stateTotal + Math.max(0, r.extraTax),
         hrow('incomeTax', LABELS.incomeTax, r.incomeTax, `מדרגה ${getMarginalBracket(r.taxableGross)}`) +
         hrow('bl',        LABELS.bl,        r.bl) +
-        hrow('health',    LABELS.health,    r.health)
-      )}
-      ${group('מעביד לחשבונך ✦', employerNet,
-        hrow('pension',   'פנסיה מעביד',             r.pensionEmpl) +
-        hrow('study',     'קרן השתלמות מעביד',       r.studyEmpl) +
-        hrow('incomeTax', 'מס על הטבות מעביד',       r.extraTax, '', true)
+        hrow('health',    LABELS.health,    r.health) +
+        (r.extraTax > 0 ? hrow('extraTax', 'מס על הטבות מעסיק', r.extraTax) : '')
       )}
     </div>
   `;
+  wireBreakdownHover(panel);
+}
+
+function wireBreakdownHover(panel) {
+  const setActive = (key, on) => {
+    panel.querySelectorAll(`[data-segment-key="${key}"]`).forEach(el => el.classList.toggle('active', on));
+  };
+  const clearAll = () => {
+    panel.querySelectorAll('.breakdown-segment.active, .hover-row.active').forEach(el => el.classList.remove('active'));
+  };
+  panel.addEventListener('mouseover', e => {
+    const key = e.target.closest('[data-segment-key]')?.dataset?.segmentKey;
+    if (key) { clearAll(); setActive(key, true); }
+  });
+  panel.addEventListener('mouseout', e => {
+    if (!panel.contains(e.relatedTarget)) clearAll();
+  });
 }
 
 function buildChartData(settings) {
@@ -719,7 +782,13 @@ function buildChart(settings) {
 
       const changed = JSON.stringify(chart.$foldHover?.lines) !== JSON.stringify(nextHover?.lines);
       chart.$foldHover = nextHover;
-      chart.canvas.style.cursor = nextHover ? 'help' : 'default';
+      chart.$mouseX = event.x;
+
+      // cursor: ew-resize when near the bruto slider line
+      const brutoX = ca.left + ((settings.bruto - minB) / (maxB - minB)) * (ca.right - ca.left);
+      const nearSlider = Math.abs(event.x - brutoX) <= 10 && event.y >= ca.top && event.y <= ca.bottom;
+      chart.canvas.style.cursor = nextHover ? 'help' : nearSlider ? 'ew-resize' : 'crosshair';
+
       if (!nextHover) {
         const fallbackBruto = Math.min(Math.max(settings.bruto, minB), maxB);
         renderHoverDetails(fallbackBruto, settings);
@@ -730,26 +799,71 @@ function buildChart(settings) {
       const bruto  = settings.bruto;
       const minB   = settings.rangeMin, maxB = settings.rangeMax;
       const ctx    = chart.ctx;
+      const ca     = chart.chartArea;
       ctx.save();
+
+      // vertical exploration line when hovering (but not dragging)
+      if (chart.$mouseX && chart.$mouseX >= ca.left && chart.$mouseX <= ca.right && !chart.$foldHover) {
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(chart.$mouseX, ca.top);
+        ctx.lineTo(chart.$mouseX, ca.bottom);
+        ctx.stroke();
+      }
+
       if (bruto >= minB && bruto <= maxB) {
         const frac = (bruto - minB) / (maxB - minB);
-        const x = chart.chartArea.left + frac * (chart.chartArea.right - chart.chartArea.left);
+        const x = ca.left + frac * (ca.right - ca.left);
+        const midY = (ca.top + ca.bottom) / 2;
+
+        // bold solid line with shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.25)';
+        ctx.shadowBlur = 6;
         ctx.strokeStyle = '#1a1a2e';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 4]);
-        ctx.beginPath();
-        ctx.moveTo(x, chart.chartArea.top);
-        ctx.lineTo(x, chart.chartArea.bottom);
-        ctx.stroke();
+        ctx.lineWidth = 3;
         ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(x, ca.top);
+        ctx.lineTo(x, ca.bottom);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // pill label at top
+        const label = `₪${bruto.toLocaleString()}`;
+        ctx.font = 'bold 12px sans-serif';
+        const tw = ctx.measureText(label).width;
+        const ph = 20, pw = tw + 16, pr = 6;
+        const px = Math.min(Math.max(x - pw / 2, ca.left), ca.right - pw);
+        const py = ca.top - ph - 4;
         ctx.fillStyle = '#1a1a2e';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`₪${bruto.toLocaleString()}`, x, chart.chartArea.top - 6);
+        ctx.beginPath();
+        ctx.roundRect(px, py, pw, ph, pr);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, px + 8, py + 14);
+
+        // drag handle circle at midpoint
+        ctx.beginPath();
+        ctx.arc(x, midY, 9, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        // grip lines inside circle
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 1.5;
+        [-3, 0, 3].forEach(dx => {
+          ctx.beginPath();
+          ctx.moveTo(x + dx, midY - 4);
+          ctx.lineTo(x + dx, midY + 4);
+          ctx.stroke();
+        });
       }
 
       // dots on each boundary line at fold points (no vertical lines)
-      const ca = chart.chartArea;
       const yScale = chart.scales.y;
       const toX = b => ca.left + ((b - minB) / (maxB - minB)) * (ca.right - ca.left);
       const toY = v => yScale.getPixelForValue(v);
