@@ -17,7 +17,7 @@
   }
   .layout {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 480px 1fr 280px;
     grid-template-rows: 100%;
     gap: 12px;
     height: 100%;
@@ -100,8 +100,9 @@
   input[type="number"]:focus, select:focus { border-color: #4a6cf7; background: #fff; }
   select { width: 100px; text-align: right; direction: rtl; }
 
-  /* Main column */
+  /* Chart column */
   .chart-card { display: flex; flex-direction: column; gap: 0; height: 100%; overflow: hidden; }
+  #chart-container { flex: 1; position: relative; min-height: 0; }
   .chart-range-bar {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
     font-size: 0.82rem; color: #6b7280;
@@ -125,15 +126,17 @@
   .chart-range-bar label { display: flex; align-items: center; gap: 6px; }
   .chart-range-bar input { width: 90px; border: 1.5px solid #e0e0e0; border-radius: 6px; padding: 4px 8px; font-size: 0.82rem; direction: ltr; text-align: left; }
   
-  canvas { width: 100% !important; flex-shrink: 0; height: 280px !important; max-height: 340px; }
+  canvas { width: 100% !important; height: 100% !important; }
 
+  /* Middle column: hover details panel */
   .hover-panel {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     background: #fff;
     overflow-y: auto;
-    flex: 1;
+    height: 100%;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    padding: 0;
   }
   .hover-header {
     display: grid;
@@ -246,11 +249,13 @@
     margin-left: 8px;
     vertical-align: middle;
   }
-  @media (max-width: 900px) {
+  @media (max-width: 1100px) {
     body { height: auto; overflow: auto; padding: 12px; }
-    .layout { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+    .layout { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; gap: 12px; }
     .controls-card { height: auto; overflow-y: visible; }
-    .chart-card { height: auto; overflow: visible; }
+    .chart-card { height: 340px; overflow: visible; }
+    #chart-container { flex: 1; min-height: 0; }
+    .hover-panel { height: auto; overflow-y: visible; }
     .hover-header { grid-template-columns: repeat(2, 1fr); }
     .hover-groups { grid-template-columns: 1fr; }
     .hover-group { border-left: none; border-top: 1px solid #e5e7eb; }
@@ -271,9 +276,10 @@
         לחצו או גררו על הגרף לסימולציה
       </div>
     </div>
-    <canvas id="chart"></canvas>
-    <div id="hoverDetails" class="hover-panel"></div>
+    <div id="chart-container"><canvas id="chart"></canvas></div>
   </div>
+
+  <div id="hoverDetails" class="hover-panel card"></div>
 
   <div class="card controls-card">
     <div class="sidebar-title">מחשבון ברוטו ← נטו</div>
@@ -925,6 +931,7 @@ function buildChart(settings) {
     data: { labels, datasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       animation: false,
       layout: { padding: { bottom: 10 } },
       interaction: { mode: 'index', intersect: false },
