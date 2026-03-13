@@ -2,6 +2,6 @@
   "name": "bruto-neto",
   "version": "1.0.0",
   "scripts": {
-    "test": "node test-math.js"
+    "test": "node test-math.js && node test-structure.js"
   }
 }
