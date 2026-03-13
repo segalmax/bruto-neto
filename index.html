@@ -105,9 +105,6 @@
   .summary-row span:last-child { font-variant-numeric: tabular-nums; direction: ltr; }
   .chart-card { min-height: 560px; display: grid; gap: 14px; }
   canvas { width: 100% !important; }
-  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: center; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; color: #555; }
-  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
   .hover-panel {
     border: 1px solid #e5e7eb;
     border-radius: 10px;
@@ -125,36 +122,29 @@
   .hover-metric { display: grid; gap: 4px; }
   .hover-metric-label { font-size: 0.75rem; color: #6b7280; }
   .hover-metric-value { font-size: 0.95rem; font-weight: 700; }
-  .hover-table {
-    width: 100%;
-    border-collapse: collapse;
+  .hover-groups {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid #e5e7eb;
   }
-  .hover-table th, .hover-table td {
-    padding: 10px 16px;
-    border-bottom: 1px solid #eef2f7;
-    font-size: 0.85rem;
+  .hover-group {
+    padding: 14px 16px;
+    border-left: 1px solid #e5e7eb;
   }
-  .hover-table th { color: #6b7280; font-weight: 600; text-align: right; }
-  .hover-table tr.group-header td {
-    background: #f3f6fb;
-    padding: 6px 16px;
-    border-top: 2px solid #e5e7eb;
+  .hover-group:last-child { border-left: none; }
+  .hover-group-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;
   }
-  .hover-table tr.group-header .g-name {
-    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.7px; color: #6b7280;
-  }
-  .hover-table tr.group-header .g-total {
-    font-size: 0.88rem; font-weight: 700; color: #1a1a2e;
-    direction: ltr; font-variant-numeric: tabular-nums;
-  }
-  .hover-table tr.group-header .g-pct {
-    font-size: 0.75rem; color: #6b7280; margin-right: 6px;
-  }
-  .hover-table td.value-cell, .hover-table th.value-cell {
-    text-align: left !important;
-  }
-  .hover-table td.value-cell { direction: ltr; text-align: left; font-variant-numeric: tabular-nums; }
+  .hover-group-name { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #6b7280; }
+  .hover-group-total { font-size: 0.9rem; font-weight: 700; color: #1a1a2e; font-variant-numeric: tabular-nums; }
+  .hover-group-total span { font-size: 0.75rem; font-weight: 400; color: #6b7280; margin-left: 5px; }
+  .hover-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.83rem; }
+  .hover-row-label { color: #444; display: flex; align-items: center; gap: 6px; }
+  .hover-row-value { color: #1a1a2e; font-variant-numeric: tabular-nums; direction: ltr; }
+  .hover-row-value .pct { font-size: 0.75rem; color: #6b7280; margin-right: 5px; }
+  .hover-row.negative .hover-row-value { color: #ef4444; }
   .swatch {
     width: 10px;
     height: 10px;
@@ -169,7 +159,7 @@
 </style>
 </head>
 <body>
-<h1>מחשבון ברוטו → נטו</h1>
+<h1>מחשבון ברוטו ← נטו</h1>
 
 <div class="layout">
   <div class="card controls-card">
@@ -434,17 +424,22 @@ function renderHoverDetails(bruto, settings) {
   const pensionTotal = r.pension + r.pensionEmpl;
   const studyTotal   = r.study   + r.studyEmpl;
 
-  const row = (key, label, value, extra) =>
-    `<tr><td><span class="swatch" style="background:${COLORS[key]}"></span>${label}</td>
-     <td class="value-cell">${formatCurrency(value)}</td>
-     <td class="value-cell">${extra}</td></tr>`;
-  const groupHeader = (label, total) =>
-    `<tr class="group-header"><td colspan="3">
-       <div style="display:flex;justify-content:space-between;align-items:center">
-         <span class="g-name">${label}</span>
-         <span><span class="g-pct">${pct(total)}</span><span class="g-total">${formatCurrency(total)}</span></span>
+  const hrow = (key, label, value, note = '', negative = false) =>
+    `<div class="hover-row${negative ? ' negative' : ''}">
+       <span class="hover-row-label"><span class="swatch" style="background:${COLORS[key]}"></span>${label}</span>
+       <span class="hover-row-value"><span class="pct">${pct(Math.abs(value))}</span>${negative ? '-' : ''}${formatCurrency(Math.abs(value))}${note ? `<br><span style="font-size:0.72rem;color:#6b7280">${note}</span>` : ''}</span>
+     </div>`;
+  const group = (name, total, rows) =>
+    `<div class="hover-group">
+       <div class="hover-group-header">
+         <span class="hover-group-name">${name}</span>
+         <span class="hover-group-total">${formatCurrency(total)}<span>${pct(Math.abs(total))}</span></span>
        </div>
-     </td></tr>`;
+       ${rows}
+     </div>`;
+
+  const mineFromBruto = r.neto + r.pension + r.study;
+  const employerNet   = r.pensionEmpl + r.studyEmpl - r.extraTax;
 
   panel.innerHTML = `
     <div class="hover-header">
@@ -461,23 +456,23 @@ function renderHoverDetails(bruto, settings) {
         <div class="hover-metric-value">${state.marginalMine.toFixed(1)}% מכל שקל נוסף</div>
       </div>
     </div>
-    <table class="hover-table">
-      <thead><tr><th>רכיב</th><th class="value-cell">סכום</th><th class="value-cell">מתוך ברוטו</th></tr></thead>
-      <tbody>
-        ${groupHeader('שלי (מתוך ברוטו)', r.neto + r.pension + r.study)}
-        ${row('neto',      'נטו (מזומן)',           r.neto,     pct(r.neto))}
-        ${row('pension',   'פנסיה עובד',            r.pension,  pct(r.pension))}
-        ${row('study',     'קרן השתלמות עובד',      r.study,    pct(r.study))}
-        ${groupHeader('מסים (מתוך ברוטו)', stateTotal)}
-        ${row('incomeTax', LABELS.incomeTax, r.incomeTax, `${pct(r.incomeTax)} | מדרגה ${getMarginalBracket(r.taxableGross)}`)}
-        ${row('bl',        LABELS.bl,        r.bl,        pct(r.bl))}
-        ${row('health',    LABELS.health,    r.health,    pct(r.health))}
-        ${groupHeader('מעביד לחשבונך ✦ (מעל ברוטו)', r.pensionEmpl + r.studyEmpl - r.extraTax)}
-        ${row('pension',   'פנסיה מעביד',                r.pensionEmpl,  pct(r.pensionEmpl))}
-        ${row('study',     'קרן השתלמות מעביד',          r.studyEmpl,    pct(r.studyEmpl))}
-        ${row('incomeTax', 'מס נוסף בגין הטבות מעביד',  -r.extraTax,    `-${pct(r.extraTax)}`)}
-      </tbody>
-    </table>
+    <div class="hover-groups">
+      ${group('שלי', mineFromBruto,
+        hrow('neto',    'נטו (מזומן)',        r.neto) +
+        hrow('pension', 'פנסיה עובד',         r.pension) +
+        hrow('study',   'קרן השתלמות עובד',   r.study)
+      )}
+      ${group('מסים', stateTotal,
+        hrow('incomeTax', LABELS.incomeTax, r.incomeTax, `מדרגה ${getMarginalBracket(r.taxableGross)}`) +
+        hrow('bl',        LABELS.bl,        r.bl) +
+        hrow('health',    LABELS.health,    r.health)
+      )}
+      ${group('מעביד לחשבונך ✦', employerNet,
+        hrow('pension',   'פנסיה מעביד',             r.pensionEmpl) +
+        hrow('study',     'קרן השתלמות מעביד',       r.studyEmpl) +
+        hrow('incomeTax', 'מס על הטבות מעביד',       r.extraTax, '', true)
+      )}
+    </div>
   `;
 }
 
@@ -728,21 +723,6 @@ function update() {
   if (!dragWired) { applyChartDrag(chartInstance.canvas); dragWired = true; }
 }
 
-// ── Legend ────────────────────────────────────────────────────────────────────
-const LEGEND_ORDER = ['equality', 'incomeTax', 'bl', 'health', 'mine', 'study', 'pension', 'neto'];
-
-function buildLegend() {
-  const eqItem = '<div class="legend-item"><div class="legend-dot" style="background:#1a1a2e;opacity:0.6"></div>קו שוויון</div>';
-  const mineItem = '<div class="legend-item"><div class="legend-dot" style="background:#fff;border:2px solid #555"></div>גבול שלי / מדינה</div>';
-  const items = LEGEND_ORDER.map(k => {
-    if (k === 'mine') return mineItem;
-    if (k === 'equality') return eqItem;
-    return `<div class="legend-item"><div class="legend-dot" style="background:${COLORS[k]}"></div>${LABELS[k]}</div>`;
-  }).join('');
-  document.querySelector('.chart-card').insertAdjacentHTML('beforeend',
-    `<div class="legend">${items}</div>`);
-}
-
 // ── Wire inputs ───────────────────────────────────────────────────────────────
 document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', update));
 
@@ -762,7 +742,6 @@ function applyChartDrag(canvas) {
   document.addEventListener('mouseup', () => { dragging = false; });
 }
 
-buildLegend();
 update();
 </script>
 </body>
