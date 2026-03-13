@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מחשבון ברוטו-נטו ישראל</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 24px;
+    color: #1a1a2e;
+    letter-spacing: -0.5px;
+  }
+  .layout {
+    display: grid;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .controls-card { padding: 16px; }
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .section-card {
+    background: #fbfcff;
+    border: 1px solid #e8edf7;
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #888;
+    margin: 18px 0 10px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 6px;
+  }
+  .section-title:first-child { margin-top: 0; }
+  .field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  label {
+    font-size: 0.87rem;
+    color: #444;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  input[type="number"], select {
+    border: 1.5px solid #e0e0e0;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 0.87rem;
+    width: 110px;
+    text-align: left;
+    direction: ltr;
+    background: #fafafa;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input[type="number"]:focus, select:focus { border-color: #4a6cf7; background: #fff; }
+  select { width: 130px; text-align: right; direction: rtl; }
+  .field-inline { display: flex; gap: 6px; }
+  .field-inline input { width: 75px; }
+  .field-inline label { font-size: 0.75rem; color: #999; align-self: center; }
+  .summary {
+    margin-top: 0;
+    background: #f7f8ff;
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid #e8eaff;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 4px 0;
+    border-bottom: 1px solid #eef;
+  }
+  .summary-row:last-child { border-bottom: none; font-weight: 700; font-size: 0.95rem; color: #4a6cf7; }
+  .summary-row span:last-child { font-variant-numeric: tabular-nums; direction: ltr; }
+  .chart-card { min-height: 560px; display: grid; gap: 14px; }
+  canvas { width: 100% !important; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; color: #555; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .hover-panel {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fbfcff;
+    overflow: hidden;
+  }
+  .hover-header {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    background: #f3f6fb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .hover-metric { display: grid; gap: 4px; }
+  .hover-metric-label { font-size: 0.75rem; color: #6b7280; }
+  .hover-metric-value { font-size: 0.95rem; font-weight: 700; }
+  .hover-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .hover-table th, .hover-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 0.85rem;
+  }
+  .hover-table th { color: #6b7280; font-weight: 600; text-align: right; }
+  .hover-table tr.group-header td {
+    background: #f3f6fb;
+    padding: 6px 16px;
+    border-top: 2px solid #e5e7eb;
+  }
+  .hover-table tr.group-header .g-name {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.7px; color: #6b7280;
+  }
+  .hover-table tr.group-header .g-total {
+    font-size: 0.88rem; font-weight: 700; color: #1a1a2e;
+    direction: ltr; font-variant-numeric: tabular-nums;
+  }
+  .hover-table tr.group-header .g-pct {
+    font-size: 0.75rem; color: #6b7280; margin-right: 6px;
+  }
+  .hover-table td.value-cell, .hover-table th.value-cell {
+    text-align: left !important;
+  }
+  .hover-table td.value-cell { direction: ltr; text-align: left; font-variant-numeric: tabular-nums; }
+  .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  @media (max-width: 900px) {
+    .hover-header { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<h1>מחשבון ברוטו → נטו</h1>
+
+<div class="layout">
+  <div class="card controls-card">
+    <div class="controls-grid">
+      <div class="section-card">
+        <div class="section-title">טווח גרף</div>
+        <div class="field">
+          <label>ברוטו מינימום (₪)</label>
+          <input type="number" id="rangeMin" value="5000" min="0" step="1000">
+        </div>
+        <div class="field">
+          <label>ברוטו מקסימום (₪)</label>
+          <input type="number" id="rangeMax" value="70000" min="10000" step="100000">
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">פרטים אישיים</div>
+        <div class="field">
+          <label>שכר ברוטו (₪)</label>
+          <input type="number" id="bruto" value="20000" min="0" step="500">
+        </div>
+        <div class="field">
+          <label>מצב משפחתי</label>
+          <select id="family">
+            <option value="single">רווק/ה</option>
+            <option value="married">נשוי/אה</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>בן/בת זוג עובד/ת</label>
+          <select id="spouseWorks">
+            <option value="yes">כן</option>
+            <option value="no">לא</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>נקודות זיכוי</label>
+          <input type="number" id="creditPoints" value="2.25" min="0" step="0.25">
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">קרן פנסיה</div>
+        <div class="field">
+          <label>עובד (%)</label>
+          <input type="number" id="pensionEmp" value="6" min="0" max="20" step="0.5">
+        </div>
+        <div class="field">
+          <label>מעביד (%)</label>
+          <input type="number" id="pensionEmpl" value="6.5" min="0" max="20" step="0.5">
+        </div>
+        <div class="field">
+          <label>פיצויים מעביד (%)</label>
+          <input type="number" id="severance" value="8.33" min="0" max="12" step="0.1">
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">קרן השתלמות</div>
+        <div class="field">
+          <label>עובד (%)</label>
+          <input type="number" id="studyEmp" value="2.5" min="0" max="10" step="0.5">
+        </div>
+        <div class="field">
+          <label>מעביד (%)</label>
+          <input type="number" id="studyEmpl" value="7.5" min="0" max="15" step="0.5">
+        </div>
+        <div class="section-title">ביטוחים</div>
+        <div class="field">
+          <label>אובדן כושר מעביד (%)</label>
+          <input type="number" id="disability" value="1" min="0" max="5" step="0.1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <canvas id="chart"></canvas>
+    <div id="hoverDetails" class="hover-panel"></div>
+  </div>
+</div>
+
+<script>
+// ── Tax/insurance rules aligned to provided 2025 tables ──────────────────────
+// 2026 tax brackets (verified against mas.gov.il מחשב שכר)
+const BRACKETS = [
+  { up: 7010,     rate: 0.10 },
+  { up: 10060,    rate: 0.14 },
+  { up: 16150,    rate: 0.20 },
+  { up: 21400,    rate: 0.31 },
+  { up: 49017,    rate: 0.35 },
+  { up: 60130,    rate: 0.47 },
+  { up: Infinity, rate: 0.50 },
+];
+const CREDIT_POINT_VALUE        = 242;   // NIS per credit point per month (2026)
+const BL_THRESHOLD              = 7703;  // 60% of average wage (2026)
+const BL_CEILING                = 51910; // max insurable income for BL/health (2026)
+const BL_LOW_EMP_RATE           = 0.0104;
+const BL_HIGH_EMP_RATE          = 0.07;
+const HEALTH_LOW_RATE           = 0.0323;
+const HEALTH_HIGH_RATE          = 0.0517;
+const STUDY_FUND_SALARY_CEILING = 15712; // employer study-fund tax-exempt salary ceiling
+const PENSION_DISABILITY_CEILING = 34423; // combined employer pension+disability tax-exempt ceiling (2026)
+const SEVERANCE_CEILING         = 45618.25; // employer severance tax-exempt salary ceiling (2026)
+
+// ── Pure calculation functions ────────────────────────────────────────────────
+
+function getMarginalBracket(taxableGross) {
+  for (const { up, rate } of BRACKETS) {
+    if (taxableGross <= up) return Math.round(rate * 100) + '%';
+  }
+  return '50%';
+}
+
+function calcTax(taxableGross, creditPoints) {
+  let tax = 0, prev = 0;
+  for (const { up, rate } of BRACKETS) {
+    if (taxableGross <= prev) break;
+    tax += (Math.min(taxableGross, up) - prev) * rate;
+    prev = up;
+  }
+  const credit = creditPoints * CREDIT_POINT_VALUE;
+  return Math.max(0, tax - credit);
+}
+
+function calcBituachLeumi(insurableGross) {
+  const insurable = Math.min(insurableGross, BL_CEILING);
+  const low = Math.min(insurable, BL_THRESHOLD);
+  const high = Math.max(0, insurable - BL_THRESHOLD);
+  const employee = low * BL_LOW_EMP_RATE + high * BL_HIGH_EMP_RATE;
+  const employer = 0;
+  return { employee, employer };
+}
+
+function calcHealth(insurableGross) {
+  const insurable = Math.min(insurableGross, BL_CEILING);
+  const low = Math.min(insurable, BL_THRESHOLD);
+  const high = Math.max(0, insurable - BL_THRESHOLD);
+  return low * HEALTH_LOW_RATE + high * HEALTH_HIGH_RATE;
+}
+
+function calcPension(gross, empPct, emplPct) {
+  const employee     = gross * (empPct  / 100);
+  const employer     = gross * (emplPct / 100);
+  const taxableBenefit = Math.max(0, gross - PENSION_DISABILITY_CEILING) * (emplPct / 100);
+  return { employee, employer, taxableBenefit };
+}
+
+// employer disability contribution above the shared pension/disability ceiling is also taxable
+function calcDisabilityTaxableBenefit(gross, disabilityPct) {
+  return Math.max(0, gross - PENSION_DISABILITY_CEILING) * (disabilityPct / 100);
+}
+
+function calcSeveranceTaxableBenefit(gross, sevrPct) {
+  return Math.max(0, gross - SEVERANCE_CEILING) * (sevrPct / 100);
+}
+
+function calcStudyFund(gross, empPct, emplPct) {
+  const employee       = gross * (empPct  / 100);
+  const employer       = gross * (emplPct / 100);
+  const taxableBenefit = Math.max(0, gross - STUDY_FUND_SALARY_CEILING) * (emplPct / 100);
+  return { employee, employer, taxableBenefit };
+}
+
+function calcNeto(bruto, s) {
+  const pension  = calcPension(bruto, s.pensionEmp, s.pensionEmpl);
+  const study    = calcStudyFund(bruto, s.studyEmp, s.studyEmpl);
+  const sevrTaxable       = calcSeveranceTaxableBenefit(bruto, s.sevrEmpl);
+  const disabilityTaxable = calcDisabilityTaxableBenefit(bruto, s.disability);
+
+  const taxableGross = bruto + pension.taxableBenefit + disabilityTaxable + study.taxableBenefit + sevrTaxable;
+
+  const bl        = calcBituachLeumi(taxableGross);
+  const health    = calcHealth(taxableGross);
+  const incomeTax = calcTax(taxableGross, s.creditPoints);
+
+  // extra tax/BL/health caused by employer taxable benefits (phantom income above ceilings)
+  const blBruto        = calcBituachLeumi(bruto);
+  const healthBruto    = calcHealth(bruto);
+  const incomeTaxBruto = calcTax(bruto, s.creditPoints);
+  const extraTax       = (incomeTax - incomeTaxBruto) + (bl.employee - blBruto.employee) + (health - healthBruto);
+
+  const totalDeductions = incomeTax + bl.employee + health + pension.employee + study.employee;
+  const neto            = bruto - totalDeductions;
+
+  return {
+    neto, incomeTax, bl: bl.employee, health, taxableGross, extraTax,
+    pension:      pension.employee,
+    study:        study.employee,
+    pensionEmpl:  pension.employer,
+    studyEmpl:    study.employer,
+  };
+}
+
+function parseInputs() {
+  const v = id => parseFloat(document.getElementById(id).value) || 0;
+  const minB = Math.max(0, v('rangeMin') || 5000);
+  const maxB = Math.max(minB + 10000, v('rangeMax') || 70000);
+  return {
+    bruto:        v('bruto'),
+    rangeMin:     minB,
+    rangeMax:     maxB,
+    creditPoints: v('creditPoints'),
+    pensionEmp:   v('pensionEmp'),
+    pensionEmpl:  v('pensionEmpl'),
+    sevrEmpl:     v('severance'),
+    studyEmp:     v('studyEmp'),
+    studyEmpl:    v('studyEmpl'),
+    disability:   v('disability'),
+  };
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+const COLORS = {
+  neto:      '#3b82f6',
+  pension:   '#8b5cf6',
+  study:     '#10b981',
+  health:    '#f59e0b',
+  bl:        '#f97316',
+  incomeTax: '#ec4899',
+};
+const LABELS = {
+  neto:      'נטו',
+  pension:   'פנסיה (עובד)',
+  study:     'קרן השתלמות (עובד)',
+  health:    'ביטוח בריאות',
+  bl:        'ביטוח לאומי',
+  incomeTax: 'מס הכנסה',
+};
+
+let chartInstance = null;
+
+function formatCurrency(value) {
+  return `₪${Math.round(value).toLocaleString()}`;
+}
+
+function getHoverState(bruto, settings) {
+  const result = calcNeto(bruto, settings);
+  // "mine" = cash + employee savings + employer savings (all goes into my accounts)
+  const mine      = result.neto + result.pension + result.study + result.pensionEmpl + result.studyEmpl;
+  const mineNoCost = result.neto + result.pension + result.study; // excluding employer (for chart boundary)
+  const marginalDelta = Math.max(1, Math.round(bruto * 0.001));
+  const next      = calcNeto(bruto + marginalDelta, settings);
+  const nextMine  = next.neto + next.pension + next.study + next.pensionEmpl + next.studyEmpl;
+  const nextMineNoCost = next.neto + next.pension + next.study;
+  return {
+    bruto, result, mine, mineNoCost,
+    minePct:     bruto > 0 ? (mine / bruto) * 100 : 0,
+    marginalNeto: ((next.neto - result.neto) / marginalDelta) * 100,
+    marginalMine: ((nextMine - mine) / marginalDelta) * 100,
+    marginalMineNoCost: ((nextMineNoCost - mineNoCost) / marginalDelta) * 100,
+  };
+}
+
+function renderHoverDetails(bruto, settings) {
+  const panel = document.getElementById('hoverDetails');
+  const state = getHoverState(bruto, settings);
+  const pct = v => `${((v / bruto) * 100).toFixed(1)}%`;
+  const r = state.result;
+  const stateTotal = r.incomeTax + r.bl + r.health;
+  const pensionTotal = r.pension + r.pensionEmpl;
+  const studyTotal   = r.study   + r.studyEmpl;
+
+  const row = (key, label, value, extra) =>
+    `<tr><td><span class="swatch" style="background:${COLORS[key]}"></span>${label}</td>
+     <td class="value-cell">${formatCurrency(value)}</td>
+     <td class="value-cell">${extra}</td></tr>`;
+  const groupHeader = (label, total) =>
+    `<tr class="group-header"><td colspan="3">
+       <div style="display:flex;justify-content:space-between;align-items:center">
+         <span class="g-name">${label}</span>
+         <span><span class="g-pct">${pct(total)}</span><span class="g-total">${formatCurrency(total)}</span></span>
+       </div>
+     </td></tr>`;
+
+  panel.innerHTML = `
+    <div class="hover-header">
+      <div class="hover-metric">
+        <div class="hover-metric-label">ברוטו</div>
+        <div class="hover-metric-value">${formatCurrency(state.bruto)}</div>
+      </div>
+      <div class="hover-metric">
+        <div class="hover-metric-label">שולי לנטו</div>
+        <div class="hover-metric-value">${state.marginalNeto.toFixed(1)}% מכל שקל נוסף</div>
+      </div>
+      <div class="hover-metric">
+        <div class="hover-metric-label">שולי לשלי</div>
+        <div class="hover-metric-value">${state.marginalMine.toFixed(1)}% מכל שקל נוסף</div>
+      </div>
+    </div>
+    <table class="hover-table">
+      <thead><tr><th>רכיב</th><th class="value-cell">סכום</th><th class="value-cell">מתוך ברוטו</th></tr></thead>
+      <tbody>
+        ${groupHeader('שלי (מתוך ברוטו)', r.neto + r.pension + r.study)}
+        ${row('neto',      'נטו (מזומן)',           r.neto,     pct(r.neto))}
+        ${row('pension',   'פנסיה עובד',            r.pension,  pct(r.pension))}
+        ${row('study',     'קרן השתלמות עובד',      r.study,    pct(r.study))}
+        ${groupHeader('מסים (מתוך ברוטו)', stateTotal)}
+        ${row('incomeTax', LABELS.incomeTax, r.incomeTax, `${pct(r.incomeTax)} | מדרגה ${getMarginalBracket(r.taxableGross)}`)}
+        ${row('bl',        LABELS.bl,        r.bl,        pct(r.bl))}
+        ${row('health',    LABELS.health,    r.health,    pct(r.health))}
+        ${groupHeader('מעביד לחשבונך ✦ (מעל ברוטו)', r.pensionEmpl + r.studyEmpl - r.extraTax)}
+        ${row('pension',   'פנסיה מעביד',                r.pensionEmpl,  pct(r.pensionEmpl))}
+        ${row('study',     'קרן השתלמות מעביד',          r.studyEmpl,    pct(r.studyEmpl))}
+        ${row('incomeTax', 'מס נוסף בגין הטבות מעביד',  -r.extraTax,    `-${pct(r.extraTax)}`)}
+      </tbody>
+    </table>
+  `;
+}
+
+function buildChartData(settings) {
+  const minB = settings.rangeMin;
+  const maxB = settings.rangeMax;
+  const step = Math.max(500, Math.round((maxB - minB) / 200));
+  const labels = [];
+  const series = { neto: [], pension: [], study: [], health: [], bl: [], incomeTax: [], mine: [] };
+
+  for (let b = minB; b <= maxB; b += step) {
+    labels.push(b);
+    const r = calcNeto(b, settings);
+    for (const k of Object.keys(series)) series[k].push(Math.round(r[k]));
+    series.mine[series.mine.length - 1] = Math.round(r.neto + r.pension + r.study); // chart boundary: employee savings only
+  }
+  return { labels, series };
+}
+
+function buildChart(settings) {
+  const { labels, series } = buildChartData(settings);
+
+  const mineLine = {
+    label: 'גבול — מתחת: שלי | מעל: מדינה',
+    data: series.mine,
+    yAxisID: 'yEq',
+    borderColor: '#ffffff',
+    borderWidth: 3,
+    fill: false,
+    pointRadius: 0,
+    tension: 0.3,
+    order: -1,
+    borderDash: [],
+  };
+
+  const equalityLine = {
+    label: 'קו שוויון (ברוטו = נטו)',
+    data: labels,
+    yAxisID: 'yEq',
+    borderColor: '#1a1a2e',
+    borderWidth: 1.5,
+    borderDash: [6, 4],
+    fill: false,
+    pointRadius: 0,
+    tension: 0,
+    order: -1,
+  };
+
+  const datasets = [mineLine, equalityLine, ...['neto', 'pension', 'study', 'health', 'bl', 'incomeTax'].map(k => ({
+    label: LABELS[k],
+    data: series[k],
+    backgroundColor: COLORS[k] + 'cc',
+    borderColor: COLORS[k],
+    borderWidth: 1.5,
+    fill: true,
+    pointRadius: 0,
+    tension: 0.3,
+  }))];
+
+  function getFoldMarkers(minB, maxB) {
+    const taxMarkers = [
+      { bruto: 7010, lines: ['נקודת קיפול', 'מס הכנסה: מעבר מ-10% ל-14%'] },
+      { bruto: 10060, lines: ['נקודת קיפול', 'מס הכנסה: מעבר מ-14% ל-20%'] },
+      { bruto: 16150, lines: ['נקודת קיפול', 'מס הכנסה: מעבר מ-20% ל-31%'] },
+      { bruto: 21400, lines: ['נקודת קיפול', 'מס הכנסה: מעבר מ-31% ל-35%'] },
+      { bruto: 49017, lines: ['נקודת קיפול', 'מס הכנסה: מעבר מ-35% ל-47%'] },
+      { bruto: 60130, lines: ['נקודת קיפול', 'מס הכנסה: מעבר מ-47% ל-50%'] },
+    ];
+    const markers = [];
+
+    taxMarkers.filter(m => m.bruto >= minB && m.bruto <= maxB).forEach(m => {
+      const r = calcNeto(m.bruto, settings);
+      const yBl = r.neto + r.pension + r.study + r.health + r.bl;
+      markers.push({ bruto: m.bruto, y: yBl, radius: 4, lines: m.lines });
+    });
+
+    [BL_THRESHOLD].filter(b => b >= minB && b <= maxB).forEach(b => {
+      const r = calcNeto(b, settings);
+      const yStudy = r.neto + r.pension + r.study;
+      const yHealth = yStudy + r.health;
+      const yBl = yHealth + r.bl;
+      const lines = ['נקודת קיפול', 'ביטוח לאומי/בריאות: מעבר לשיעור מלא'];
+      markers.push({ bruto: b, y: yHealth, radius: 3, lines });
+      markers.push({ bruto: b, y: yBl, radius: 3, lines });
+    });
+
+    [BL_CEILING].filter(b => b >= minB && b <= maxB).forEach(b => {
+      const r = calcNeto(b, settings);
+      const yStudy = r.neto + r.pension + r.study;
+      const yHealth = yStudy + r.health;
+      const yBl = yHealth + r.bl;
+      const lines = ['נקודת קיפול', 'ביטוח לאומי/בריאות: מכאן יש תקרה והקו נשטח'];
+      markers.push({ bruto: b, y: yHealth, radius: 3, lines });
+      markers.push({ bruto: b, y: yBl, radius: 3, lines });
+    });
+
+    return markers;
+  }
+
+  // vertical marker plugin
+  const markerPlugin = {
+    id: 'markerLine',
+    afterEvent(chart, args) {
+      const minB = settings.rangeMin, maxB = settings.rangeMax;
+      const event = args.event;
+      if (!event) return;
+      const ca = chart.chartArea;
+      const yScale = chart.scales.y;
+      const toX = b => ca.left + ((b - minB) / (maxB - minB)) * (ca.right - ca.left);
+      const toY = v => yScale.getPixelForValue(v);
+      const foldMarkers = getFoldMarkers(minB, maxB).map(marker => ({ ...marker, px: toX(marker.bruto), py: toY(marker.y) }));
+      let nextHover = null;
+      let bestDistance = Infinity;
+
+      foldMarkers.forEach(marker => {
+        const distance = Math.hypot(event.x - marker.px, event.y - marker.py);
+        if (distance <= 10 && distance < bestDistance) {
+          bestDistance = distance;
+          nextHover = { x: event.x, y: event.y, lines: marker.lines };
+        }
+      });
+
+      const changed = JSON.stringify(chart.$foldHover?.lines) !== JSON.stringify(nextHover?.lines);
+      chart.$foldHover = nextHover;
+      chart.canvas.style.cursor = nextHover ? 'help' : 'default';
+      if (!nextHover) {
+        const fallbackBruto = Math.min(Math.max(settings.bruto, minB), maxB);
+        renderHoverDetails(fallbackBruto, settings);
+      }
+      if (changed) args.changed = true;
+    },
+    afterDraw(chart) {
+      const bruto  = settings.bruto;
+      const minB   = settings.rangeMin, maxB = settings.rangeMax;
+      const ctx    = chart.ctx;
+      ctx.save();
+      if (bruto >= minB && bruto <= maxB) {
+        const frac = (bruto - minB) / (maxB - minB);
+        const x = chart.chartArea.left + frac * (chart.chartArea.right - chart.chartArea.left);
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, chart.chartArea.top);
+        ctx.lineTo(x, chart.chartArea.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#1a1a2e';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`₪${bruto.toLocaleString()}`, x, chart.chartArea.top - 6);
+      }
+
+      // dots on each boundary line at fold points (no vertical lines)
+      const ca = chart.chartArea;
+      const yScale = chart.scales.y;
+      const toX = b => ca.left + ((b - minB) / (maxB - minB)) * (ca.right - ca.left);
+      const toY = v => yScale.getPixelForValue(v);
+
+      getFoldMarkers(minB, maxB).forEach(marker => {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.arc(toX(marker.bruto), toY(marker.y), marker.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      if (chart.$foldHover) {
+        const padding = 8;
+        const lineHeight = 16;
+        const boxX = Math.min(chart.$foldHover.x + 12, ca.right - 240);
+        const boxY = Math.max(ca.top + 8, chart.$foldHover.y - 10);
+        const boxWidth = 228;
+        const boxHeight = chart.$foldHover.lines.length * lineHeight + padding * 2;
+        ctx.fillStyle = 'rgba(26, 26, 46, 0.94)';
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'right';
+        ctx.font = '12px sans-serif';
+        chart.$foldHover.lines.forEach((line, index) => {
+          ctx.fillText(line, boxX + boxWidth - padding, boxY + padding + 12 + index * lineHeight);
+        });
+      }
+
+      ctx.restore();
+    }
+  };
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      animation: false,
+      layout: { padding: { bottom: 10 } },
+      interaction: { mode: 'index', intersect: false },
+      onClick: (_event, activeElements) => {
+        if (!activeElements.length) return;
+        document.getElementById('bruto').value = Math.round(labels[activeElements[0].index]);
+        update();
+      },
+      onHover: (_event, activeElements) => {
+        if (chartInstance?.$foldHover) return;
+        const fallbackBruto = Math.min(Math.max(settings.bruto, labels[0]), labels[labels.length - 1]);
+        const hoveredBruto = activeElements.length ? Number(labels[activeElements[0].index]) : fallbackBruto;
+        renderHoverDetails(hoveredBruto, settings);
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: false,
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxTicksLimit: 10,
+            callback: function(v) { return `₪${Number(this.getLabelForValue(v)).toLocaleString()}`; },
+          },
+          title: { display: true, text: 'שכר ברוטו (₪)', font: { size: 12 } }
+        },
+        y: {
+          stacked: true,
+          min: 0, max: settings.rangeMax,
+          ticks: { stepSize: Math.round(settings.rangeMax / 10), callback: v => `₪${v.toLocaleString()}` },
+          title: { display: true, text: '₪ לחודש', font: { size: 12 } }
+        },
+        yEq: {
+          display: false,
+          min: 0, max: settings.rangeMax,
+        }
+      }
+    },
+    plugins: [markerPlugin],
+  });
+  renderHoverDetails(Math.min(Math.max(settings.bruto, labels[0]), labels[labels.length - 1]), settings);
+}
+
+let dragWired = false;
+function update() {
+  const settings = parseInputs();
+  buildChart(settings);
+  if (!dragWired) { applyChartDrag(chartInstance.canvas); dragWired = true; }
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+const LEGEND_ORDER = ['equality', 'incomeTax', 'bl', 'health', 'mine', 'study', 'pension', 'neto'];
+
+function buildLegend() {
+  const eqItem = '<div class="legend-item"><div class="legend-dot" style="background:#1a1a2e;opacity:0.6"></div>קו שוויון</div>';
+  const mineItem = '<div class="legend-item"><div class="legend-dot" style="background:#fff;border:2px solid #555"></div>גבול שלי / מדינה</div>';
+  const items = LEGEND_ORDER.map(k => {
+    if (k === 'mine') return mineItem;
+    if (k === 'equality') return eqItem;
+    return `<div class="legend-item"><div class="legend-dot" style="background:${COLORS[k]}"></div>${LABELS[k]}</div>`;
+  }).join('');
+  document.querySelector('.chart-card').insertAdjacentHTML('beforeend',
+    `<div class="legend">${items}</div>`);
+}
+
+// ── Wire inputs ───────────────────────────────────────────────────────────────
+document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', update));
+
+// drag-to-select on chart canvas
+function applyChartDrag(canvas) {
+  let dragging = false;
+  const pick = e => {
+    const pts = chartInstance.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+    if (!pts.length) return;
+    const s = parseInputs();
+    const b = Math.round(Number(buildChartData(s).labels[pts[0].index]));
+    document.getElementById('bruto').value = b;
+    update();
+  };
+  canvas.addEventListener('mousedown', e => { dragging = true; pick(e); });
+  canvas.addEventListener('mousemove', e => { if (dragging) pick(e); });
+  document.addEventListener('mouseup', () => { dragging = false; });
+}
+
+buildLegend();
+update();
+</script>
+</body>
+</html>
