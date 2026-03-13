@@ -11,61 +11,76 @@
     font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
     background: #f0f2f5;
     color: #1a1a2e;
-    min-height: 100vh;
-    padding: 24px;
-  }
-  h1 {
-    text-align: center;
-    font-size: 1.8rem;
-    margin-bottom: 24px;
-    color: #1a1a2e;
-    letter-spacing: -0.5px;
+    height: 100vh;
+    overflow: hidden;
+    padding: 12px;
   }
   .layout {
     display: grid;
-    gap: 20px;
-    max-width: 1400px;
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: 100%;
+    gap: 12px;
+    height: 100%;
+    max-width: 1600px;
     margin: 0 auto;
   }
   .card {
     background: #fff;
     border-radius: 12px;
-    padding: 20px;
+    padding: 14px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   }
-  .controls-card { padding: 16px; }
+  /* Sidebar */
+  .controls-card {
+    padding: 12px;
+    overflow-y: auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .sidebar-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: #1a1a2e;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #e8edf7;
+    text-align: center;
+  }
   .controls-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
+    grid-template-columns: 1fr;
+    gap: 8px;
     align-items: start;
   }
   .section-card {
     background: #fbfcff;
     border: 1px solid #e8edf7;
     border-radius: 10px;
-    padding: 14px;
+    padding: 10px;
   }
   .section-title {
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: #888;
-    margin: 18px 0 10px;
+    margin: 12px 0 7px;
     border-bottom: 1px solid #f0f0f0;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
   }
   .section-title:first-child { margin-top: 0; }
   .field {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    gap: 8px;
+    margin-bottom: 6px;
+    gap: 6px;
   }
   label {
-    font-size: 0.87rem;
+    font-size: 0.8rem;
     color: #444;
     white-space: nowrap;
     flex-shrink: 0;
@@ -73,9 +88,9 @@
   input[type="number"], select {
     border: 1.5px solid #e0e0e0;
     border-radius: 7px;
-    padding: 6px 10px;
-    font-size: 0.87rem;
-    width: 110px;
+    padding: 4px 8px;
+    font-size: 0.82rem;
+    width: 90px;
     text-align: left;
     direction: ltr;
     background: #fafafa;
@@ -83,13 +98,15 @@
     outline: none;
   }
   input[type="number"]:focus, select:focus { border-color: #4a6cf7; background: #fff; }
-  select { width: 130px; text-align: right; direction: rtl; }
-  
-  .chart-card { min-height: 500px; display: flex; flex-direction: column; gap: 0; }
+  select { width: 100px; text-align: right; direction: rtl; }
+
+  /* Main column */
+  .chart-card { display: flex; flex-direction: column; gap: 0; height: 100%; overflow: hidden; }
   .chart-range-bar {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
     font-size: 0.82rem; color: #6b7280;
-    padding: 6px 4px 10px;
+    padding: 4px 4px 6px;
+    flex-shrink: 0;
   }
   .chart-hint {
     display: flex; align-items: center; gap: 6px;
@@ -108,14 +125,14 @@
   .chart-range-bar label { display: flex; align-items: center; gap: 6px; }
   .chart-range-bar input { width: 90px; border: 1.5px solid #e0e0e0; border-radius: 6px; padding: 4px 8px; font-size: 0.82rem; direction: ltr; text-align: left; }
   
-  canvas { width: 100% !important; flex-grow: 1; }
+  canvas { width: 100% !important; flex-shrink: 0; height: 280px !important; max-height: 340px; }
 
   .hover-panel {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     background: #fff;
-    overflow: hidden;
-    margin-top: 20px;
+    overflow-y: auto;
+    flex: 1;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
   }
   .hover-header {
@@ -230,6 +247,10 @@
     vertical-align: middle;
   }
   @media (max-width: 900px) {
+    body { height: auto; overflow: auto; padding: 12px; }
+    .layout { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+    .controls-card { height: auto; overflow-y: visible; }
+    .chart-card { height: auto; overflow: visible; }
     .hover-header { grid-template-columns: repeat(2, 1fr); }
     .hover-groups { grid-template-columns: 1fr; }
     .hover-group { border-left: none; border-top: 1px solid #e5e7eb; }
@@ -237,10 +258,25 @@
 </style>
 </head>
 <body>
-<h1>מחשבון ברוטו ← נטו</h1>
-
 <div class="layout">
+  <div class="card chart-card">
+    <div class="chart-range-bar">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span class="chart-range-label">טווח גרף</span>
+        <label>מ־<input type="number" id="rangeMin" value="5000" min="0" step="1000"> ₪</label>
+        <label>עד <input type="number" id="rangeMax" value="70000" min="10000" step="100000"> ₪</label>
+      </div>
+      <div class="chart-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        לחצו או גררו על הגרף לסימולציה
+      </div>
+    </div>
+    <canvas id="chart"></canvas>
+    <div id="hoverDetails" class="hover-panel"></div>
+  </div>
+
   <div class="card controls-card">
+    <div class="sidebar-title">מחשבון ברוטו ← נטו</div>
     <div class="controls-grid">
       <div class="section-card">
         <div class="section-title">פרטים אישיים</div>
@@ -267,7 +303,6 @@
           <input type="number" id="creditPoints" value="2.25" min="0" step="0.25">
         </div>
       </div>
-
       <div class="section-card">
         <div class="section-title">קרן פנסיה</div>
         <div class="field">
@@ -283,7 +318,6 @@
           <input type="number" id="severance" value="8.33" min="0" max="12" step="0.1">
         </div>
       </div>
-
       <div class="section-card">
         <div class="section-title">קרן השתלמות</div>
         <div class="field">
@@ -301,22 +335,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="card chart-card">
-    <div class="chart-range-bar">
-      <div style="display:flex; align-items:center; gap:16px;">
-        <span class="chart-range-label">טווח גרף</span>
-        <label>מ־<input type="number" id="rangeMin" value="5000" min="0" step="1000"> ₪</label>
-        <label>עד <input type="number" id="rangeMax" value="70000" min="10000" step="100000"> ₪</label>
-      </div>
-      <div class="chart-hint">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        לחצו או גררו על הגרף לסימולציה
-      </div>
-    </div>
-    <canvas id="chart"></canvas>
-    <div id="hoverDetails" class="hover-panel"></div>
   </div>
 </div>
 
