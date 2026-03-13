@@ -302,7 +302,7 @@ export function buildChart(settings, { renderHoverDetails, update }) {
           stacked: true,
           min: 0, max: settings.rangeMax,
           ticks: { stepSize: Math.round(settings.rangeMax / 10), callback: v => `₪${v.toLocaleString()}` },
-          title: { display: false, text: '₪ לחודש', font: { size: 12 } }
+          title: { display: true, text: '₪ לחודש', font: { size: 12 } }
         },
         yEq: { display: false, min: 0, max: settings.rangeMax }
       }

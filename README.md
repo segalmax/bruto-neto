@@ -9,10 +9,10 @@ bruto-neto/
 ├── index.html          # Entry point (HTML only)
 ├── css/
 │   └── main.css        # Styles
-├── src/                # Application source
+├── src/
 │   ├── calc.js         # Tax/insurance constants and pure math
 │   ├── chart.js        # Chart data, buildChart, fold markers
-│   └── app.js          # DOM wiring, renderHoverDetails, update
+│   └── app.js          # DOM wiring, renderHoverDetails, update (entry)
 ├── test/
 │   ├── math.js         # Unit tests for calc
 │   └── structure.js    # Regression tests (HTML/CSS/JS invariants)
